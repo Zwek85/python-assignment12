@@ -1,0 +1,52 @@
+import sqlite3
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Step 1: Connect to the database
+conn = sqlite3.connect('db/lesson.db')  # adjust path if needed
+
+# Step 2: Run the query with correct table and column names
+query = """
+SELECT e.employee_name, SUM(p.unit_price * l.quantity) AS revenue
+FROM employee e
+JOIN orders o ON e.employee_id = o.employee_id
+JOIN line_item l ON o.order_id = l.order_id
+JOIN product p ON l.product_id = p.product_id
+GROUP BY e.employee_id;
+"""
+
+employee_results = pd.read_sql_query(query, conn)
+
+# Step 3: Check the data before plotting
+print("Employee results:")
+print(employee_results)
+print("\nData types:")
+print(employee_results.dtypes)
+print("\nShape:", employee_results.shape)
+
+# Step 4: Handle empty results
+if employee_results.empty:
+    print("\n⚠️ No data returned from the query. Please check your database and table joins.")
+else:
+    # Step 5: Ensure 'revenue' is numeric
+    employee_results['revenue'] = pd.to_numeric(employee_results['revenue'], errors='coerce')
+
+    # Step 6: Plot the bar chart
+    employee_results.plot(kind='bar', x='employee_name', y='revenue', color='skyblue')
+    plt.title('Employee Revenue')
+    plt.xlabel('Employee Name')
+    plt.ylabel('Revenue')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.show()
+
+tables = ['customer', 'orders', 'line_items', 'product']
+for table in tables:
+    df = pd.read_sql_query(f"SELECT * FROM {table} LIMIT 5;", conn)
+    print(f"\nSample rows from {table}:\n", df)
+
+conn = sqlite3.connect('db/lesson.db')  # or your correct path
+cursor = conn.cursor()
+cursor.execute("PRAGMA table_info(orders);")
+print(cursor.fetchall())
+
